@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django CSRF AJAX</title>
+    <style>
+        div {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        img {
+            margin-top: 50px;
+            display: block;
+            max-width: 100%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js" async></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            fetch("http://localhost:8000/get-csrf-token", {
+                credentials: "include"
+            });
+
+            const picture_url = await get_picture();
+            const img = new Image();
+            img.src = picture_url;
+            img.alt = "some image";
+            img.classList.add("image");
+            document.querySelector("div").appendChild(img);
+
+            document.querySelector("form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const picture_url = e.target.children[0].value;
+                await set_picture(picture_url);
+                const new_url = await get_picture()
+                document.querySelector(".image").src = new_url;
+            })
+        })
+
+        async function get_picture() {
+            const res = await fetch("http://localhost:8000/get-picture");
+            const data = await res.json();
+            const picture_url = data.picture_url;
+            return picture_url;
+        }
+
+        async function set_picture(picture_url) {
+            const res = await fetch("http://localhost:8000/set-picture", {
+                method: "post",
+                credentials: "include",
+                headers: {
+                    'X-CSRFToken': Cookies.get("csrftoken")
+                },
+                body: JSON.stringify({ "picture_url": picture_url })
+            })
+        }
+
+    </script>
+</head>
+
+<body>
+    <div>
+        <form>
+            <input type="text" name="picture-url">
+            <button type="submit">Set Picture</button>
+        </form>
+    </div>
+</body>
+
+</html>
